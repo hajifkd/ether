@@ -1,0 +1,9 @@
+[package]
+name = "ether"
+version = "0.1.0"
+authors = ["hfukuda"]
+
+[dependencies]
+hyper = "0.12"
+futures = "0.1.23"
+

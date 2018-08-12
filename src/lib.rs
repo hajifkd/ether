@@ -22,6 +22,7 @@ pub trait Launcher: std::marker::Sized {
     fn launch(&self, &Method, &str) -> Option<String>;
 
     // TODO not to search '/' multiple times?
+    // Maybe we can write mount! macro
     fn mount<'a, S: Launcher>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S> {
         mounter::Mounter {
             without_prefix: self,
@@ -35,6 +36,9 @@ pub trait Launcher: std::marker::Sized {
 pub mod launcher_server;
 
 pub mod mounter;
+
+#[macro_use]
+pub mod route;
 
 #[cfg(test)]
 mod tests {

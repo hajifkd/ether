@@ -1,3 +1,4 @@
+// Probably we need applier! macro?
 
 #[macro_export]
 macro_rules! launcher {
@@ -19,4 +20,3 @@ macro_rules! launcher {
         __Ether_Launcher
     }}
 }
-

@@ -1,15 +1,20 @@
 pub trait Route<A> {
-    fn match_route(&self, paths: &[&str]) -> Option<A>;
+    fn match_route(&self, method: ::Method, paths: &[&str]) -> Option<A>;
 }
 
+// TODO accept not only literals?
 #[macro_export]
 macro_rules! route {
-    ( $($tokens:tt),* ) => {{
+    ( $method:expr ; $($tokens:tt),* ) => {{
         #[allow(non_camel_case_types)]
         struct __Ether_Route;
 
         impl $crate::route::Route<__route_extract_type!($($tokens),* ; )> for __Ether_Route {
-            fn match_route(&self, paths: &[&str]) -> Option<__route_extract_type!($($tokens),* ; )> {
+            fn match_route(&self, method: $crate::Method, paths: &[&str])
+                -> Option<__route_extract_type!($($tokens),* ; )> {
+                if method != $method {
+                    return None;
+                }
                 __route_impl!($($tokens),*; 0 ; ; ; paths);
             }
         }
@@ -110,25 +115,38 @@ mod tests {
         use route::Route;
 
         // one argument
-        let route = route!("test", "hoge", i32, "edit");
-        assert_eq!(route.match_route(&["aaa"]), None);
-        assert_eq!(route.match_route(&["test", "hoge", "fuga", "edit"]), None);
+        let route = route!(::Method::Get; "test", "hoge", i32, "edit");
+        assert_eq!(route.match_route(::Method::Get, &["aaa"]), None);
         assert_eq!(
-            route.match_route(&["test", "hoge", "42", "edit"]),
+            route.match_route(::Method::Get, &["test", "hoge", "fuga", "edit"]),
+            None
+        );
+        assert_eq!(
+            route.match_route(::Method::Get, &["test", "hoge", "42", "edit"]),
             Some((42,))
+        );
+        assert_eq!(
+            route.match_route(::Method::Post, &["test", "hoge", "42", "edit"]),
+            None
         );
 
         // multi arguments
-        let route = route!("test", "hoge", i32, "edit", String, "hoge");
-        assert_eq!(route.match_route(&["test", "hoge", "42", "edit"]), None);
+        let route = route!(::Method::Get; "test", "hoge", i32, "edit", String, "hoge");
         assert_eq!(
-            route.match_route(&["test", "hoge", "42", "edit", "bbb", "hoge"]),
+            route.match_route(::Method::Get, &["test", "hoge", "42", "edit"]),
+            None
+        );
+        assert_eq!(
+            route.match_route(
+                ::Method::Get,
+                &["test", "hoge", "42", "edit", "bbb", "hoge"]
+            ),
             Some((42, "bbb".to_owned()))
         );
 
         // no argument
-        let route = route!("foo", "bar");
-        assert_eq!(route.match_route(&["aaa"]), None);
-        assert_eq!(route.match_route(&["foo", "bar"]), Some(()));
+        let route = route!(::Method::Get; "foo", "bar");
+        assert_eq!(route.match_route(::Method::Get, &["aaa"]), None);
+        assert_eq!(route.match_route(::Method::Get, &["foo", "bar"]), Some(()));
     }
 }

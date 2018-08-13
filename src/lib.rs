@@ -1,6 +1,7 @@
 extern crate futures;
 extern crate hyper;
 
+#[derive(PartialEq, Eq, Debug)]
 pub enum Method {
     Get,
     Post,
@@ -39,6 +40,8 @@ pub mod mounter;
 
 #[macro_use]
 pub mod route;
+
+pub mod utils;
 
 #[cfg(test)]
 mod tests {

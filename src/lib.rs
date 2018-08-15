@@ -1,7 +1,10 @@
 extern crate futures;
 extern crate hyper;
 
-#[derive(PartialEq, Eq, Debug)]
+#[macro_use]
+pub mod route;
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Method {
     Get,
     Post,
@@ -20,7 +23,8 @@ impl std::convert::From<hyper::Method> for Method {
 
 pub trait Launcher: std::marker::Sized {
     // TODO use some template engine so that we may use vdom
-    fn launch(&self, &Method, &str) -> Option<String>;
+    // TODO not Method but something like Request, using Request.method instead.
+    fn launch(&self, Method, &str) -> Option<String>;
 
     // TODO not to search '/' multiple times?
     // Maybe we can write mount! macro
@@ -37,9 +41,6 @@ pub trait Launcher: std::marker::Sized {
 pub mod launcher_server;
 
 pub mod mounter;
-
-#[macro_use]
-pub mod route;
 
 pub mod utils;
 

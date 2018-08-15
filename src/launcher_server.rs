@@ -1,5 +1,7 @@
 #[macro_export]
 macro_rules! launcher {
+    ([ $( $route:expr => $fn:expr ;)+ ]) => (launcher!([ $( $route => $fn );* ]));
+
     ([ $( $route:expr => $fn:expr );* ]) => {{
         #[allow(unused_imports)]
         use $crate::utils::apply;
@@ -84,7 +86,7 @@ mod tests {
             [
                 route!(::Method::Get; "hoge", "fuga") => || "no param /hoge/fuga".to_owned();
                 route!(::Method::Get; "hoge", String) => |x: String| format!("param /hoge/{}", x);
-                route!(::Method::Get; "piyo", i32) => |x: i32| format!("int param /piyo/{}", x)
+                route!(::Method::Get; "piyo", i32) => |x: i32| format!("int param /piyo/{}", x);
             ]
         );
 

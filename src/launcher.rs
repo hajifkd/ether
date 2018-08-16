@@ -1,3 +1,26 @@
+use ::Method;
+use ::mounter;
+
+use std;
+
+pub trait Launcher: std::marker::Sized {
+    // TODO use some template engine so that we may use vdom
+    // TODO not Method but something like Request, using Request.method instead.
+    fn launch(&self, Method, &str) -> Option<String>;
+
+    // TODO not to search '/' multiple times?
+    // Maybe we can write mount! macro
+    fn mount<'a, S: Launcher>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S> {
+        mounter::Mounter {
+            without_prefix: self,
+            prefix: prefix,
+            with_prefix: other,
+        }
+    }
+}
+
+
+
 #[macro_export]
 macro_rules! launcher {
     ([ $( $route:expr => $fn:expr ;)+ ]) => (launcher!([ $( $route => $fn );* ]));
@@ -9,7 +32,7 @@ macro_rules! launcher {
         #[allow(non_camel_case_types)]
         struct __Ether_Launcher;
 
-        impl $crate::Launcher for __Ether_Launcher {
+        impl $crate::launcher::Launcher for __Ether_Launcher {
             #[allow(unused_variables)]
             fn launch(&self, m: $crate::Method, path: &str) -> Option<String> {
                 use std::vec::Vec;
@@ -32,7 +55,7 @@ macro_rules! launcher {
 mod tests {
     #[test]
     fn test_empty() {
-        use Launcher;
+        use ::launcher::Launcher;
         let launcher = launcher!([]);
 
         assert_eq!(launcher.launch(::Method::Get, "/doc/hoge"), None);
@@ -41,7 +64,7 @@ mod tests {
     #[test]
     fn test_simple_launcher() {
         use route::Route;
-        use Launcher;
+        use ::launcher::Launcher;
 
         let launcher = launcher!([ route!(::Method::Get; "hoge", "fuga") => || "piyo".to_owned() ]);
 
@@ -56,7 +79,7 @@ mod tests {
     #[test]
     fn test_params() {
         use route::Route;
-        use Launcher;
+        use ::launcher::Launcher;
 
         let launcher =
             launcher!([ route!(::Method::Get; "hoge", String) => |x| format!("get {}", x) ]);
@@ -80,7 +103,7 @@ mod tests {
     #[test]
     fn test_multi_route() {
         use route::Route;
-        use Launcher;
+        use ::launcher::Launcher;
 
         let launcher = launcher!(
             [

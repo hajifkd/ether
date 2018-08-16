@@ -21,24 +21,8 @@ impl std::convert::From<hyper::Method> for Method {
     }
 }
 
-pub trait Launcher: std::marker::Sized {
-    // TODO use some template engine so that we may use vdom
-    // TODO not Method but something like Request, using Request.method instead.
-    fn launch(&self, Method, &str) -> Option<String>;
-
-    // TODO not to search '/' multiple times?
-    // Maybe we can write mount! macro
-    fn mount<'a, S: Launcher>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S> {
-        mounter::Mounter {
-            without_prefix: self,
-            prefix: prefix,
-            with_prefix: other,
-        }
-    }
-}
-
 #[macro_use]
-pub mod launcher_server;
+pub mod launcher;
 
 pub mod mounter;
 

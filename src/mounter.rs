@@ -1,4 +1,4 @@
-use ::launcher::Launcher;
+use launcher::Launcher;
 
 pub struct Mounter<'a, S, T>
 where

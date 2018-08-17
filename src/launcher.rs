@@ -1,11 +1,11 @@
-use ::Method;
-use ::mounter;
+use mounter;
+use Method;
 
 use std;
 
 pub trait Launcher: std::marker::Sized {
     // TODO use some template engine so that we may use vdom
-    // TODO not Method but something like Request, using Request.method instead.
+    // TODO not Method but something like Request, using Request.method, .path instead.
     fn launch(&self, Method, &str) -> Option<String>;
 
     // TODO not to search '/' multiple times?
@@ -18,8 +18,6 @@ pub trait Launcher: std::marker::Sized {
         }
     }
 }
-
-
 
 #[macro_export]
 macro_rules! launcher {
@@ -55,7 +53,7 @@ macro_rules! launcher {
 mod tests {
     #[test]
     fn test_empty() {
-        use ::launcher::Launcher;
+        use launcher::Launcher;
         let launcher = launcher!([]);
 
         assert_eq!(launcher.launch(::Method::Get, "/doc/hoge"), None);
@@ -63,8 +61,8 @@ mod tests {
 
     #[test]
     fn test_simple_launcher() {
+        use launcher::Launcher;
         use route::Route;
-        use ::launcher::Launcher;
 
         let launcher = launcher!([ route!(::Method::Get; "hoge", "fuga") => || "piyo".to_owned() ]);
 
@@ -78,8 +76,8 @@ mod tests {
 
     #[test]
     fn test_params() {
+        use launcher::Launcher;
         use route::Route;
-        use ::launcher::Launcher;
 
         let launcher =
             launcher!([ route!(::Method::Get; "hoge", String) => |x| format!("get {}", x) ]);
@@ -102,8 +100,8 @@ mod tests {
 
     #[test]
     fn test_multi_route() {
+        use launcher::Launcher;
         use route::Route;
-        use ::launcher::Launcher;
 
         let launcher = launcher!(
             [

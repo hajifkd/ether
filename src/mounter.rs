@@ -1,4 +1,5 @@
 use launcher::Launcher;
+use request::Request;
 
 pub struct Mounter<'a, S, T>
 where
@@ -15,22 +16,15 @@ where
     S: Launcher,
     T: Launcher,
 {
-    fn launch(&self, method: &::Method, path: &str) -> Option<String> {
-        if let Some(r) = self.without_prefix.launch(method, path) {
+    fn launch(&self, request: &mut Option<Request>, paths: &[&str]) -> Option<String> {
+        if let Some(r) = self.without_prefix.launch(request, paths) {
             Some(r)
-        } else if path.len() > 0 {
-            if let Some(at) = &path[1..].find('/') {
-                let (fst, snd) = path.split_at(1usize + at);
-                if fst == self.prefix {
-                    self.with_prefix.launch(method, snd)
-                } else {
-                    None
-                }
+        } else {
+            if paths.len() > 0 && self.prefix == paths[0] {
+                self.with_prefix.launch(request, &paths[1..])
             } else {
                 None
             }
-        } else {
-            None
         }
     }
 }

@@ -5,6 +5,28 @@ pub trait Route<A> {
 // TODO accept not only literals?
 #[macro_export]
 macro_rules! route {
+    ( $method:expr ; "" ) => {{
+        #[allow(non_camel_case_types)]
+        struct __Ether_Route;
+
+        impl $crate::route::Route<()> for __Ether_Route {
+            fn match_route(&self, method: &$crate::Method, paths: &[&str])
+                -> Option<()> {
+                if method != $method {
+                    return None;
+                }
+                
+                if paths.len() == 0 || (paths.len() == 1 && paths[0].is_empty()) {
+                    Some(())
+                } else {
+                    None
+                }
+            }
+        }
+
+        __Ether_Route{}
+    }};
+
     ( $method:expr ; $($tokens:tt),* ) => {{
         #[allow(non_camel_case_types)]
         struct __Ether_Route;
@@ -108,6 +130,15 @@ mod tests {
             )))(),
             None
         );
+    }
+
+    #[test]
+    fn test_empty_route() {
+        use route::Route;
+        let route = route!(::Method::GET; "");
+        assert_eq!(route.match_route(&::Method::GET, &["aaa"]), None);
+        assert_eq!(route.match_route(&::Method::GET, &[""]), Some(()));
+        assert_eq!(route.match_route(&::Method::GET, &[]), Some(()));
     }
 
     #[test]

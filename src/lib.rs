@@ -1,9 +1,10 @@
 extern crate futures;
+extern crate http;
+
+#[cfg(not(target_arch = "wasm32"))]
 extern crate hyper;
 
-#[macro_use]
-pub mod route;
-
+// TODO use http::Method itself?
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Method {
     Get,
@@ -11,15 +12,18 @@ pub enum Method {
     Unknown,
 }
 
-impl std::convert::From<hyper::Method> for Method {
-    fn from(method: hyper::Method) -> Self {
+impl std::convert::From<http::Method> for Method {
+    fn from(method: http::Method) -> Self {
         match method {
-            hyper::Method::GET => Method::Get,
-            hyper::Method::POST => Method::Post,
+            http::Method::GET => Method::Get,
+            http::Method::POST => Method::Post,
             _ => Method::Unknown,
         }
     }
 }
+
+#[macro_use]
+pub mod route;
 
 #[macro_use]
 pub mod launcher;
@@ -28,10 +32,8 @@ pub mod mounter;
 
 pub mod utils;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+pub mod request;
+
+pub mod uri {
+    pub use http::uri::Uri;
 }

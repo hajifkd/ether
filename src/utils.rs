@@ -1,27 +1,27 @@
 // See https://bit.ly/2nzMCVm
 #[inline(always)]
-pub fn apply<Fun, In, Out>(f: Fun, p: In) -> Out
+pub fn apply<Fun, Pre, In, Out>(f: Fun, pre: Pre, p: In) -> Out
 where
-    ApplyImpl: Apply<Fun, In, Out>,
+    ApplyImpl: Apply<Fun, Pre, In, Out>,
 {
-    ApplyImpl::apply(f, p)
+    ApplyImpl::apply(f, pre, p)
 }
 
 pub struct ApplyImpl;
 
-pub trait Apply<Fun, In, Out> {
-    fn apply(f: Fun, params: In) -> Out;
+pub trait Apply<Fun, Pre, In, Out> {
+    fn apply(f: Fun, pre_param: Pre, params: In) -> Out;
 }
 
 macro_rules! gen_apply {
     () => {
-        impl<Fun, Out> Apply<Fun, (), Out> for ApplyImpl
+        impl<Fun, Pre, Out> Apply<Fun, Pre, (), Out> for ApplyImpl
         where
-            Fun: Fn() -> Out,
+            Fun: Fn(Pre) -> Out,
         {
             #[inline(always)]
-            fn apply(f: Fun, _p: ()) -> Out {
-                f()
+            fn apply(f: Fun, pre_param: Pre, _p: ()) -> Out {
+                f(pre_param)
             }
         }
     };
@@ -29,15 +29,15 @@ macro_rules! gen_apply {
     ( $S:ident $(, $T:ident )* ) => {
         gen_apply!{ $($T),* }
 
-        impl<Fun, $S, $($T, )* Out> Apply<Fun, ($S, $($T),*), Out> for ApplyImpl
+        impl<Fun, Pre, $S, $($T, )* Out> Apply<Fun, Pre, ($S, $($T),*), Out> for ApplyImpl
         where
-            Fun: Fn($S $(, $T)*) -> Out,
+            Fun: Fn(Pre, $S $(, $T)*) -> Out,
         {
             #[inline(always)]
-            fn apply(f: Fun, p: ($S, $($T),*)) -> Out {
+            fn apply(f: Fun, pre_param: Pre, p: ($S, $($T),*)) -> Out {
                 #[allow(non_snake_case)]
                 let ($S, $($T),*) = p;
-                f($S $(, $T)*)
+                f(pre_param, $S $(, $T)*)
             }
         }
     };
@@ -52,6 +52,6 @@ mod tests {
     #[test]
     fn test_apply() {
         use std::ops::Add;
-        assert_eq!(apply(i32::add, (1, 2)), 3);
+        assert_eq!(apply(i32::add, 1, (2,)), 3);
     }
 }

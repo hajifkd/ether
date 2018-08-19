@@ -32,11 +32,10 @@ macro_rules! launcher {
         impl $crate::launcher::Launcher for __Ether_Launcher {
             #[allow(unused_variables)]
             fn launch(&self, request: &mut Option<$crate::request::Request>, paths: &[&str]) -> Option<String> {
-                let ref m = request.as_ref().unwrap().method;
-
                 $(
-                    if let Some(a) = $route.match_route(m, paths) {
-                        return Some(apply($fn, a));
+                    // Never panic by this Option::unwrap.
+                    if let Some(a) = $route.match_route(&request.as_ref().unwrap().method, paths) {
+                        return Some(apply($fn, request.take().unwrap(), a));
                     }
                 );*
 
@@ -89,7 +88,8 @@ mod tests {
         use launcher::Launcher;
         use route::Route;
 
-        let launcher = launcher!([ route!(::Method::GET; "hoge", "fuga") => || "piyo".to_owned() ]);
+        let launcher =
+            launcher!([ route!(::Method::GET; "hoge", "fuga") => |_| "piyo".to_owned() ]);
 
         assert_eq!(
             launcher.launch(
@@ -120,7 +120,7 @@ mod tests {
         use route::Route;
 
         let launcher =
-            launcher!([ route!(::Method::GET; "hoge", String) => |x| format!("get {}", x) ]);
+            launcher!([ route!(::Method::GET; "hoge", String) => |_, x| format!("get {}", x) ]);
 
         assert_eq!(
             launcher.launch(
@@ -138,7 +138,7 @@ mod tests {
         );
 
         let launcher =
-            launcher!([ route!(&::Method::GET; "hoge", i32) => |x| format!("get {}", x + 5) ]);
+            launcher!([ route!(&::Method::GET; "hoge", i32) => |_, x| format!("get {}", x + 5) ]);
 
         assert_eq!(
             launcher.launch(
@@ -163,9 +163,9 @@ mod tests {
 
         let launcher = launcher!(
             [
-                route!(&::Method::GET; "hoge", "fuga") => || "no param /hoge/fuga".to_owned();
-                route!(&::Method::GET; "hoge", String) => |x: String| format!("param /hoge/{}", x);
-                route!(&::Method::GET; "piyo", i32) => |x: i32| format!("int param /piyo/{}", x);
+                route!(&::Method::GET; "hoge", "fuga") => |_| "no param /hoge/fuga".to_owned();
+                route!(&::Method::GET; "hoge", String) => |_, x: String| format!("param /hoge/{}", x);
+                route!(&::Method::GET; "piyo", i32) => |_, x: i32| format!("int param /piyo/{}", x);
             ]
         );
 

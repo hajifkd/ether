@@ -11,6 +11,8 @@ pub mod utils;
 
 pub mod request;
 
+pub mod runtime;
+
 pub mod uri {
     pub use http::uri::Uri;
 }

@@ -5,12 +5,7 @@ extern crate http;
 extern crate hyper;
 
 #[macro_use]
-pub mod route;
-
-#[macro_use]
-pub mod launcher;
-
-pub mod mounter;
+pub mod routing;
 
 pub mod utils;
 

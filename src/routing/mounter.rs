@@ -1,5 +1,5 @@
-use launcher::Launcher;
 use request::Request;
+use routing::launcher::Launcher;
 
 pub struct Mounter<'a, S, T>
 where

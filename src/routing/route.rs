@@ -9,13 +9,13 @@ macro_rules! route {
         #[allow(non_camel_case_types)]
         struct __Ether_Route;
 
-        impl $crate::route::Route<()> for __Ether_Route {
+        impl $crate::routing::route::Route<()> for __Ether_Route {
             fn match_route(&self, method: &$crate::Method, paths: &[&str])
                 -> Option<()> {
                 if method != $method {
                     return None;
                 }
-                
+
                 if paths.len() == 0 || (paths.len() == 1 && paths[0].is_empty()) {
                     Some(())
                 } else {
@@ -31,7 +31,7 @@ macro_rules! route {
         #[allow(non_camel_case_types)]
         struct __Ether_Route;
 
-        impl $crate::route::Route<__route_extract_type!($($tokens),* ; )> for __Ether_Route {
+        impl $crate::routing::route::Route<__route_extract_type!($($tokens),* ; )> for __Ether_Route {
             fn match_route(&self, method: &$crate::Method, paths: &[&str])
                 -> Option<__route_extract_type!($($tokens),* ; )> {
                 if method != $method {
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_empty_route() {
-        use route::Route;
+        use routing::route::Route;
         let route = route!(::Method::GET; "");
         assert_eq!(route.match_route(&::Method::GET, &["aaa"]), None);
         assert_eq!(route.match_route(&::Method::GET, &[""]), Some(()));
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_route() {
-        use route::Route;
+        use routing::route::Route;
 
         // one argument
         let route = route!(::Method::GET; "test", "hoge", i32, "edit");

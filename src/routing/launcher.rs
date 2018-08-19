@@ -1,5 +1,5 @@
-use mounter;
 use request::Request;
+use routing::mounter;
 
 use std;
 
@@ -29,7 +29,7 @@ macro_rules! launcher {
         #[allow(non_camel_case_types)]
         struct __Ether_Launcher;
 
-        impl $crate::launcher::Launcher for __Ether_Launcher {
+        impl $crate::routing::launcher::Launcher for __Ether_Launcher {
             #[allow(unused_variables)]
             fn launch(&self, request: &mut Option<$crate::request::Request>, paths: &[&str]) -> Option<String> {
                 $(
@@ -49,6 +49,8 @@ macro_rules! launcher {
 
 #[cfg(test)]
 mod tests {
+    use routing::launcher::Launcher;
+    use routing::route::Route;
 
     macro_rules! empty_req {
         ($m:expr) => {{
@@ -71,7 +73,6 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        use launcher::Launcher;
         let launcher = launcher!([]);
 
         assert_eq!(
@@ -85,9 +86,6 @@ mod tests {
 
     #[test]
     fn test_simple_launcher() {
-        use launcher::Launcher;
-        use route::Route;
-
         let launcher =
             launcher!([ route!(::Method::GET; "hoge", "fuga") => |_| "piyo".to_owned() ]);
 
@@ -116,9 +114,6 @@ mod tests {
 
     #[test]
     fn test_params() {
-        use launcher::Launcher;
-        use route::Route;
-
         let launcher =
             launcher!([ route!(::Method::GET; "hoge", String) => |_, x| format!("get {}", x) ]);
 
@@ -158,9 +153,6 @@ mod tests {
 
     #[test]
     fn test_multi_route() {
-        use launcher::Launcher;
-        use route::Route;
-
         let launcher = launcher!(
             [
                 route!(&::Method::GET; "hoge", "fuga") => |_| "no param /hoge/fuga".to_owned();

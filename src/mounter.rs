@@ -15,7 +15,7 @@ where
     S: Launcher,
     T: Launcher,
 {
-    fn launch(&self, method: ::Method, path: &str) -> Option<String> {
+    fn launch(&self, method: &::Method, path: &str) -> Option<String> {
         if let Some(r) = self.without_prefix.launch(method, path) {
             Some(r)
         } else if path.len() > 0 {

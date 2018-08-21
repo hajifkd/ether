@@ -1,19 +1,25 @@
 use request::Request;
 use routing::mounter;
 
+use futures::prelude::*;
+
 use std;
 
-pub trait Launcher: std::marker::Sized {
+pub trait Launcher<T: Stream<Item = Vec<u8>, Error = String>>: std::marker::Sized {
     // TODO use some template engine so that we may use vdom
     // TODO not Method but something like Request, using Request.method, .path instead.
     // take Option<Request>? Option::take looks ok.
-    fn launch(&self, request: &mut Option<Request>, paths: &[&str]) -> Option<String>;
+    fn launch(&self, request: &mut Request<T>, paths: &[&str]) -> Option<String>;
 
-    fn mount<'a, S: Launcher>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S> {
+    fn mount<'a, S>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S, T>
+    where
+        S: Launcher<T>,
+    {
         mounter::Mounter {
             without_prefix: self,
             prefix: prefix,
             with_prefix: other,
+            _d: std::marker::PhantomData,
         }
     }
 }
@@ -26,16 +32,18 @@ macro_rules! launcher {
         #[allow(unused_imports)]
         use $crate::utils::apply;
 
+        use $crate::_futures::*;
+
         #[allow(non_camel_case_types)]
         struct __Ether_Launcher;
 
-        impl $crate::routing::launcher::Launcher for __Ether_Launcher {
+        impl<T: Stream<Item = Vec<u8>, Error = String>> $crate::routing::launcher::Launcher<T> for __Ether_Launcher {
             #[allow(unused_variables)]
-            fn launch(&self, request: &mut Option<$crate::request::Request>, paths: &[&str]) -> Option<String> {
+            fn launch(&self, request: &mut $crate::request::Request<T>, paths: &[&str]) -> Option<String> {
                 $(
                     // Never panic by this Option::unwrap.
-                    if let Some(a) = $route.match_route(&request.as_ref().unwrap().method, paths) {
-                        return Some(apply($fn, request.take().unwrap(), a));
+                    if let Some(a) = $route.match_route(&request.method, paths) {
+                        return Some(apply($fn, request, a));
                     }
                 );*
 
@@ -54,20 +62,12 @@ mod tests {
 
     macro_rules! empty_req {
         ($m:expr) => {{
-            use request::BodyStream;
-            use request::Request;
-
-            use http;
+            use request;
             use uri;
 
             use std::str::FromStr;
 
-            Some(Request {
-                method: $m,
-                uri: uri::Uri::from_str("http://www.example.com/").unwrap(),
-                body: BodyStream::empty(),
-                headers: http::header::HeaderMap::new(),
-            })
+            request::empty_body($m, uri::Uri::from_str("http://www.example.com/").unwrap())
         }};
     }
 

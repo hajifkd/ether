@@ -18,3 +18,7 @@ pub mod uri {
 }
 
 pub use http::Method;
+
+pub mod _futures {
+    pub use futures::prelude::*;
+}

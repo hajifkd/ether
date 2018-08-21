@@ -8,111 +8,87 @@ use http::header;
 #[cfg(not(target_arch = "wasm32"))]
 use hyper::Body;
 
-#[cfg(target_arch = "wasm32")]
 use futures;
 
-pub struct Request {
+pub struct Request<T: Stream<Item = Vec<u8>, Error = String>> {
     pub method: Method,
     pub uri: uri::Uri,
-    pub body: BodyStream,
+    body: Option<T>,
     pub headers: header::HeaderMap<header::HeaderValue>,
 }
 
-// inner always impl's Stream<Item=[&u8], Error=Box<Error + Send + Sync>>
-#[cfg(target_arch = "wasm32")]
-pub struct BodyStream {
-    inner: futures::future::IntoStream<futures::future::FutureResult<Option<Vec<u8>>, ()>>,
-}
-
 #[cfg(not(target_arch = "wasm32"))]
-pub struct BodyStream {
-    inner: Body,
-}
-
-impl BodyStream {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn empty() -> BodyStream {
-        BodyStream {
-            inner: Body::empty(),
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn empty() -> BodyStream {
-        BodyStream {
-            inner: futures::future::ok(|| None).into_stream(),
-        }
-    }
-}
-
-impl Stream for BodyStream {
-    type Item = Vec<u8>;
-    type Error = String;
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn poll(&mut self) -> Poll<Option<Vec<u8>>, String> {
-        match self.inner.poll() {
-            Err(e) => Err(format!("{}", e)),
-            Ok(Async::Ready(Some(chunk))) => Ok(Async::Ready(Some(chunk.to_vec()))),
-            Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
-            Ok(Async::NotReady) => Ok(Async::NotReady),
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn poll(&mut self) -> Poll<Option<Vec<u8>>, String> {
-        match inner.poll() {
-            Err(e) => "Error".to_owned(),
-            Ok(Async::Ready(Some(Some(b)))) => Ok(Async::Ready(Some(b))),
-            Ok(Async::Ready(Some(None))) => Ok(Async::Ready(None)),
-            Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
-            Ok(Async::NotReady) => Ok(Async::NotReady), // Never reach here
-        }
-    }
-}
-
-impl Request {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn from_hyper_request(req: http::Request<Body>) -> Request {
-        let (
-            http::request::Parts {
-                method,
-                uri,
-                headers,
-                ..
-            },
-            body,
-        ) = req.into_parts();
-
-        Request {
+pub fn from_hyper_request(
+    req: http::Request<Body>,
+) -> Request<impl Stream<Item = Vec<u8>, Error = String>> {
+    let (
+        http::request::Parts {
             method,
             uri,
             headers,
-            body: BodyStream { inner: body },
-        }
+            ..
+        },
+        body,
+    ) = req.into_parts();
+
+    Request {
+        method,
+        uri,
+        headers,
+        body: Some(body.map(|c| c.to_vec()).map_err(|e| format!("{}", e))),
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn from_raw_values(
+    method: Method,
+    uri: uri::Uri,
+    body: String,
+) -> Request<impl Stream<Item = Vec<u8>, Error = String>> {
+    Request {
+        method,
+        uri,
+        headers: header::HeaderMap::new(),
+        body: Some(
+            futures::future::ok(move || body.into())
+                .into_stream()
+                .map_err(|_| "Some error in future".to_owned()),
+        ),
+    }
+}
+
+pub fn empty_body(
+    method: Method,
+    uri: uri::Uri,
+) -> Request<futures::stream::Empty<Vec<u8>, String>> {
+    Request {
+        method,
+        uri,
+        headers: header::HeaderMap::new(),
+        body: None,
+    }
+}
+
+impl<T: Stream<Item = Vec<u8>, Error = String>> Request<T> {
+    /// Take the body stream.
+    /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
+    pub fn take_stream(&mut self) -> Option<impl Stream<Item = Vec<u8>, Error = String>> {
+        self.body.take()
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub fn from_raw_values(method: Method, uri: uri::Uri, body: String) -> Request {
-        Request {
-            method,
-            uri,
-            headers: header::HeaderMap::new(),
-            body: BodyStream {
-                inner: futures::future::ok(move || Some(body.into())).into_stream(),
-            },
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn new_no_body(method: Method, uri: uri::Uri) -> Request {
-        Request {
-            method,
-            uri,
-            headers: header::HeaderMap::new(),
-            body: BodyStream {
-                inner: futures::future::ok(move || None).into_stream(),
-            },
-        }
+    /// Take the body stream converted into future.
+    /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
+    pub fn take_as_future(&mut self) -> Option<impl Future<Item = Vec<u8>, Error = String>> {
+        self.body.take().map(|s| {
+            s.into_future()
+                .map(|(r, _)| {
+                    if r.is_some() {
+                        r.unwrap()
+                    } else {
+                        vec![]
+                    }
+                })
+                .map_err(|(e, _)| e)
+        })
     }
 }

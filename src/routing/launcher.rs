@@ -71,15 +71,16 @@ mod tests {
         }};
     }
 
+    fn routify<'a>(path: &'a str) -> Vec<&'a str> {
+        path.split('/').skip(1).collect::<Vec<_>>()
+    }
+
     #[test]
     fn test_empty() {
         let launcher = launcher!([]);
 
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/doc/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
     }
@@ -90,24 +91,15 @@ mod tests {
             launcher!([ route!(::Method::GET; "hoge", "fuga") => |_| "piyo".to_owned() ]);
 
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/doc/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::POST),
-                &"/hoge/fuga".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::POST), &routify("/hoge/fuga")),
             None
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/hoge/fuga".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("piyo".to_owned())
         );
     }
@@ -118,17 +110,11 @@ mod tests {
             launcher!([ route!(::Method::GET; "hoge", String) => |_, x| format!("get {}", x) ]);
 
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/doc/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/hoge/fuga".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("get fuga".to_owned())
         );
 
@@ -136,17 +122,11 @@ mod tests {
             launcher!([ route!(&::Method::GET; "hoge", i32) => |_, x| format!("get {}", x + 5) ]);
 
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/doc/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/hoge/3".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/3")),
             Some("get 8".to_owned())
         );
     }
@@ -162,38 +142,23 @@ mod tests {
         );
 
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/doc/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/hoge/fuga".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("no param /hoge/fuga".to_owned())
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/hoge/fuga2".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga2")),
             Some("param /hoge/fuga2".to_owned())
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/piyo/2".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/piyo/2")),
             Some("int param /piyo/2".to_owned())
         );
         assert_eq!(
-            launcher.launch(
-                &mut empty_req!(::Method::GET),
-                &"/piyo/hoge".split('/').collect::<Vec<_>>()[1..]
-            ),
+            launcher.launch(&mut empty_req!(::Method::GET), &routify("/piyo/hoge")),
             None
         );
     }

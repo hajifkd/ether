@@ -39,7 +39,6 @@ pub fn from_hyper_request(
     }
 }
 
-#[cfg(target_arch = "wasm32")]
 pub fn from_raw_values(
     method: Method,
     uri: uri::Uri,
@@ -50,9 +49,9 @@ pub fn from_raw_values(
         uri,
         headers: header::HeaderMap::new(),
         body: Some(
-            futures::future::ok(move || body.into())
+            futures::future::ok(body.into())
                 .into_stream()
-                .map_err(|_| "Some error in future".to_owned()),
+                .map_err(|()| "Some error in future".to_owned()),
         ),
     }
 }

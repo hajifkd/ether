@@ -1,9 +1,10 @@
 [package]
 name = "ether"
 version = "0.1.0"
-authors = ["hfukuda"]
+authors = ["Hajime Fukuda"]
 
 [dependencies]
+# TODO hyper = { version = "0.12", features = [], default-features = false }
 hyper = "0.12"
 http = "0.1"
 futures = "0.1.23"

@@ -3,27 +3,39 @@ use routing::launcher::Launcher;
 
 use futures::prelude::*;
 
-use std;
-
-pub struct Mounter<'a, S, T, U>
+pub struct Mounter<'a, S, T>
 where
-    S: Launcher<U>,
-    T: Launcher<U>,
-    U: Stream<Item = Vec<u8>, Error = String>,
+    S: Launcher,
+    T: Launcher,
 {
     pub(crate) without_prefix: S,
     pub(crate) prefix: &'a str,
     pub(crate) with_prefix: T,
-    pub(crate) _d: std::marker::PhantomData<U>,
 }
 
-impl<'a, S, T, U> Launcher<U> for Mounter<'a, S, T, U>
+impl<S, T> Clone for Mounter<'static, S, T>
 where
-    S: Launcher<U>,
-    T: Launcher<U>,
-    U: Stream<Item = Vec<u8>, Error = String>,
+    S: Launcher + Clone,
+    T: Launcher + Clone,
 {
-    fn launch(&self, request: &mut Request<U>, paths: &[&str]) -> Option<String> {
+    fn clone(&self) -> Self {
+        Mounter {
+            without_prefix: self.without_prefix.clone(),
+            prefix: self.prefix,
+            with_prefix: self.with_prefix.clone(),
+        }
+    }
+}
+
+impl<'a, S, T> Launcher for Mounter<'a, S, T>
+where
+    S: Launcher,
+    T: Launcher,
+{
+    fn launch<U>(&self, request: &mut Request<U>, paths: &[&str]) -> Option<String>
+    where
+        U: Stream<Item = Vec<u8>, Error = String>,
+    {
         if let Some(r) = self.without_prefix.launch(request, paths) {
             Some(r)
         } else {

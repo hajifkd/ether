@@ -3,23 +3,23 @@ use routing::mounter;
 
 use futures::prelude::*;
 
-use std;
-
-pub trait Launcher<T: Stream<Item = Vec<u8>, Error = String>>: std::marker::Sized {
+pub trait Launcher {
     // TODO use some template engine so that we may use vdom
     // TODO not Method but something like Request, using Request.method, .path instead.
     // take Option<Request>? Option::take looks ok.
-    fn launch(&self, request: &mut Request<T>, paths: &[&str]) -> Option<String>;
-
-    fn mount<'a, S>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S, T>
+    fn launch<T>(&self, request: &mut Request<T>, paths: &[&str]) -> Option<String>
     where
-        S: Launcher<T>,
+        T: Stream<Item = Vec<u8>, Error = String>;
+
+    fn mount<'a, S>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S>
+    where
+        Self: Sized,
+        S: Launcher,
     {
         mounter::Mounter {
             without_prefix: self,
             prefix: prefix,
             with_prefix: other,
-            _d: std::marker::PhantomData,
         }
     }
 }
@@ -35,11 +35,13 @@ macro_rules! launcher {
         use $crate::_futures::*;
 
         #[allow(non_camel_case_types)]
+        #[derive(Clone)]
         struct __Ether_Launcher;
 
-        impl<T: Stream<Item = Vec<u8>, Error = String>> $crate::routing::launcher::Launcher<T> for __Ether_Launcher {
+        impl $crate::routing::launcher::Launcher for __Ether_Launcher {
             #[allow(unused_variables)]
-            fn launch(&self, request: &mut $crate::request::Request<T>, paths: &[&str]) -> Option<String> {
+            fn launch<T>(&self, request: &mut $crate::request::Request<T>, paths: &[&str]) -> Option<String>
+            where T: Stream<Item = Vec<u8>, Error = String> {
                 $(
                     // Never panic by this Option::unwrap.
                     if let Some(a) = $route.match_route(&request.method, paths) {

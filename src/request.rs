@@ -8,12 +8,14 @@ use http::header;
 #[cfg(not(target_arch = "wasm32"))]
 use hyper::Body;
 
+use std::cell::RefCell;
+
 use futures;
 
 pub struct Request<T: Stream<Item = Vec<u8>, Error = String>> {
     pub method: Method,
     pub uri: uri::Uri,
-    body: Option<T>,
+    body: RefCell<Option<T>>,
     pub headers: header::HeaderMap<header::HeaderValue>,
 }
 
@@ -35,7 +37,7 @@ pub fn from_hyper_request(
         method,
         uri,
         headers,
-        body: Some(body.map(|c| c.to_vec()).map_err(|e| format!("{}", e))),
+        body: RefCell::new(Some(body.map(|c| c.to_vec()).map_err(|e| format!("{}", e)))),
     }
 }
 
@@ -48,11 +50,11 @@ pub fn from_raw_values(
         method,
         uri,
         headers: header::HeaderMap::new(),
-        body: Some(
+        body: RefCell::new(Some(
             futures::future::ok(body.into())
                 .into_stream()
                 .map_err(|()| "Some error in future".to_owned()),
-        ),
+        )),
     }
 }
 
@@ -64,21 +66,21 @@ pub fn empty_body(
         method,
         uri,
         headers: header::HeaderMap::new(),
-        body: None,
+        body: RefCell::new(None),
     }
 }
 
 impl<T: Stream<Item = Vec<u8>, Error = String>> Request<T> {
     /// Take the body stream.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_stream(&mut self) -> Option<impl Stream<Item = Vec<u8>, Error = String>> {
-        self.body.take()
+    pub fn take_stream(&self) -> Option<impl Stream<Item = Vec<u8>, Error = String>> {
+        self.body.replace(None).take()
     }
 
     /// Take the body stream converted into future.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_as_future(&mut self) -> Option<impl Future<Item = Vec<u8>, Error = String>> {
-        self.body.take().map(|s| {
+    pub fn take_as_future(&self) -> Option<impl Future<Item = Vec<u8>, Error = String>> {
+        self.body.replace(None).take().map(|s| {
             s.into_future()
                 .map(|(r, _)| {
                     if r.is_some() {

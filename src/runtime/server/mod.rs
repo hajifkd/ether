@@ -22,16 +22,11 @@ where
                 move |req: Request<Body>| -> Box<Future<Item = Response<Body>, Error = String> + Send> {
                     // TODO Should it be future?
                     // Also we need to implement our own `run`
-                    let mut request = request::from_hyper_request(req);
+                    let request = request::from_hyper_request(req);
 
-                    // TODO looks ugly. Should request include &[&str]?
-                    // But it seems impossible to have the reference to itself.
-                    // Probably the request should not have Uri.
-                    // Rather, it should have scheme, authority and path_and_query separately.
-                    let path = request.uri.path().to_owned();
-                    let paths = path.split('/').skip(1).collect::<Vec<_>>();
+                    let paths = request.uri.path().split('/').skip(1).collect::<Vec<_>>();
 
-                    let result = launcher.launch(&mut request, &paths);
+                    let result = launcher.launch(&request, &paths);
 
                     if let Some(r) = result {
                         Box::new(future::ok(Response::new(Body::from(r))))

@@ -7,7 +7,7 @@ pub trait Launcher {
     // TODO use some template engine so that we may use vdom
     // TODO not Method but something like Request, using Request.method, .path instead.
     // take Option<Request>? Option::take looks ok.
-    fn launch<T>(&self, request: &mut Request<T>, paths: &[&str]) -> Option<String>
+    fn launch<T>(&self, request: &Request<T>, paths: &[&str]) -> Option<String>
     where
         T: Stream<Item = Vec<u8>, Error = String>;
 
@@ -40,7 +40,7 @@ macro_rules! launcher {
 
         impl $crate::routing::launcher::Launcher for __Ether_Launcher {
             #[allow(unused_variables)]
-            fn launch<T>(&self, request: &mut $crate::request::Request<T>, paths: &[&str]) -> Option<String>
+            fn launch<T>(&self, request: &$crate::request::Request<T>, paths: &[&str]) -> Option<String>
             where T: Stream<Item = Vec<u8>, Error = String> {
                 $(
                     // Never panic by this Option::unwrap.
@@ -82,7 +82,7 @@ mod tests {
         let launcher = launcher!([]);
 
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
     }
@@ -93,15 +93,15 @@ mod tests {
             launcher!([ route!(::Method::GET; "hoge", "fuga") => |_| "piyo".to_owned() ]);
 
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::POST), &routify("/hoge/fuga")),
+            launcher.launch(&empty_req!(::Method::POST), &routify("/hoge/fuga")),
             None
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("piyo".to_owned())
         );
     }
@@ -112,11 +112,11 @@ mod tests {
             launcher!([ route!(::Method::GET; "hoge", String) => |_, x| format!("get {}", x) ]);
 
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("get fuga".to_owned())
         );
 
@@ -124,11 +124,11 @@ mod tests {
             launcher!([ route!(&::Method::GET; "hoge", i32) => |_, x| format!("get {}", x + 5) ]);
 
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/3")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/hoge/3")),
             Some("get 8".to_owned())
         );
     }
@@ -144,23 +144,23 @@ mod tests {
         );
 
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/doc/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/doc/hoge")),
             None
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/hoge/fuga")),
             Some("no param /hoge/fuga".to_owned())
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/hoge/fuga2")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/hoge/fuga2")),
             Some("param /hoge/fuga2".to_owned())
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/piyo/2")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/piyo/2")),
             Some("int param /piyo/2".to_owned())
         );
         assert_eq!(
-            launcher.launch(&mut empty_req!(::Method::GET), &routify("/piyo/hoge")),
+            launcher.launch(&empty_req!(::Method::GET), &routify("/piyo/hoge")),
             None
         );
     }

@@ -32,7 +32,7 @@ where
     S: Launcher,
     T: Launcher,
 {
-    fn launch<U>(&self, request: &mut Request<U>, paths: &[&str]) -> Option<String>
+    fn launch<U>(&self, request: &Request<U>, paths: &[&str]) -> Option<String>
     where
         U: Stream<Item = Vec<u8>, Error = String>,
     {

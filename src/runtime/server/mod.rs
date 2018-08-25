@@ -6,7 +6,8 @@ use std::net::SocketAddr;
 use hyper;
 
 use hyper::service::service_fn;
-use hyper::{Body, Request, Response, Server, StatusCode};
+use hyper::{Body, Request, Server, StatusCode};
+use response::*;
 
 use request;
 
@@ -29,7 +30,8 @@ where
                     let result = launcher.launch(&request, &paths);
 
                     if let Some(r) = result {
-                        Box::new(future::ok(Response::new(Body::from(r))))
+                        let (p, body) = r.into_parts();
+                        Box::new(future::ok(Response::from_parts(p, body.into())))
                     } else {
                         let body = Body::from("Not found");
                         Box::new(future::ok(

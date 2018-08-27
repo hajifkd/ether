@@ -12,7 +12,7 @@ use std::cell::RefCell;
 
 use futures;
 
-pub struct Request<T: Stream<Item = Vec<u8>, Error = String>> {
+pub struct Request<T> {
     pub method: Method,
     pub uri: uri::Uri,
     body: RefCell<Option<T>>,
@@ -70,23 +70,27 @@ pub fn empty_body(
     }
 }
 
-impl<T: Stream<Item = Vec<u8>, Error = String>> Request<T> {
+impl<T, V, E> Request<T>
+where
+    T: Stream<Item = V, Error = E>,
+    V: Default,
+{
     /// Take the body stream.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_stream(&self) -> Option<impl Stream<Item = Vec<u8>, Error = String>> {
+    pub fn take_stream(&self) -> Option<impl Stream<Item = V, Error = E>> {
         self.body.replace(None).take()
     }
 
     /// Take the body stream converted into future.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_as_future(&self) -> Option<impl Future<Item = Vec<u8>, Error = String>> {
+    pub fn take_as_future(&self) -> Option<impl Future<Item = V, Error = E>> {
         self.body.replace(None).take().map(|s| {
             s.into_future()
                 .map(|(r, _)| {
                     if r.is_some() {
                         r.unwrap()
                     } else {
-                        vec![]
+                        V::default()
                     }
                 })
                 .map_err(|(e, _)| e)

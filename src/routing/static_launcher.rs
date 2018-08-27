@@ -1,12 +1,17 @@
 use routing::launcher::Launcher;
 use std::path::PathBuf;
 
+use futures::future::ok;
 use futures::prelude::*;
 use request::Request;
 use response::*;
 use url;
 
-use std;
+use tokio::codec::BytesCodec;
+use tokio::codec::Decoder;
+use tokio::fs;
+
+/// This must be used with Tokio runtime.
 
 #[derive(Clone)]
 pub struct StaticLauncher {
@@ -28,8 +33,10 @@ impl StaticLauncher {
 }
 
 impl Launcher for StaticLauncher {
+    type Ret = Box<Future<Item = Response<ResponseBody>, Error = String> + Send>;
+
     #[cfg(target_arch = "wasm32")]
-    fn launch<U>(&self, _request: &Request<U>, paths: &[&str]) -> Option<Response<ResponseBody>>
+    fn launch<U>(&self, _request: &Request<U>, paths: &[&str]) -> Option<Self::Ret>
     where
         U: Stream<Item = Vec<u8>, Error = String>,
     {
@@ -37,7 +44,7 @@ impl Launcher for StaticLauncher {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn launch<U>(&self, _request: &Request<U>, paths: &[&str]) -> Option<Response<ResponseBody>>
+    fn launch<U>(&self, _request: &Request<U>, paths: &[&str]) -> Option<Self::Ret>
     where
         U: Stream<Item = Vec<u8>, Error = String>,
     {
@@ -54,12 +61,22 @@ impl Launcher for StaticLauncher {
             return None;
         }
 
-        // TODO Async reading
-        let result = std::fs::read_to_string(&path);
-        if result.is_err() {
-            return None;
-        }
+        let tokio_file = fs::File::open(path);
 
-        Some(Response::new(ResponseBody::Immediate(result.unwrap())))
+        Some(Box::new(tokio_file.then(|f| {
+            ok::<_, String>(match f {
+                Ok(f) => {
+                    let codec = BytesCodec::new();
+                    let framed = codec.framed(f);
+                    Response::new(ResponseBody::ByteStream(Box::new(
+                        framed.map(|bm| bm.freeze()).map_err(|e| format!("{}", e)),
+                    )))
+                }
+                Err(_) => Response::builder()
+                    .status(::StatusCode::NOT_FOUND)
+                    .body(ResponseBody::Immediate("Not Found".to_owned()))
+                    .unwrap(),
+            })
+        })))
     }
 }

@@ -6,14 +6,14 @@ use std::net::SocketAddr;
 use hyper;
 
 use hyper::service::service_fn;
-use hyper::{Body, Request, Server, StatusCode};
+use hyper::{Body, Request, Server};
 use response::*;
 
 use request;
 
 pub fn run<T>(addr: SocketAddr, launcher: T)
 where
-    T: Launcher + Send + Sync + Clone + 'static,
+    T: Launcher<Ret = Response<ResponseBody>> + Send + Sync + Clone + 'static,
 {
     let server = Server::bind(&addr)
         .serve(move || {
@@ -36,7 +36,7 @@ where
                         let body = Body::from("Not found");
                         Box::new(future::ok(
                             Response::builder()
-                                .status(StatusCode::NOT_FOUND)
+                                .status(::StatusCode::NOT_FOUND)
                                 .body(body)
                                 .unwrap(),
                         ))

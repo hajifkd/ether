@@ -3,8 +3,6 @@ use routing::launcher::Launcher;
 
 use futures::prelude::*;
 
-use response::*;
-
 pub struct Mounter<'a, S, T>
 where
     S: Launcher,
@@ -32,9 +30,11 @@ where
 impl<'a, S, T> Launcher for Mounter<'a, S, T>
 where
     S: Launcher,
-    T: Launcher,
+    T: Launcher<Ret = S::Ret>,
 {
-    fn launch<U>(&self, request: &Request<U>, paths: &[&str]) -> Option<Response<ResponseBody>>
+    type Ret = S::Ret;
+
+    fn launch<U>(&self, request: &Request<U>, paths: &[&str]) -> Option<Self::Ret>
     where
         U: Stream<Item = Vec<u8>, Error = String>,
     {

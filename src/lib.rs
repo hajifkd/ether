@@ -5,9 +5,11 @@ extern crate http;
 extern crate hyper;
 
 #[cfg(not(target_arch = "wasm32"))]
-extern crate tokio_fs;
+extern crate tokio;
 
 extern crate url;
+
+extern crate bytes;
 
 #[macro_use]
 pub mod routing;
@@ -25,6 +27,8 @@ pub mod uri {
 }
 
 pub use http::Method;
+
+pub use http::StatusCode;
 
 pub mod _futures {
     pub use futures::prelude::*;

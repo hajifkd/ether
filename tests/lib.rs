@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate ether;
+extern crate bytes;
 extern crate futures;
+extern crate tokio;
 
 use ether::request::*;
 use ether::response::*;
@@ -8,6 +10,7 @@ use ether::routing::launcher::Launcher;
 use ether::routing::route::Route;
 use ether::routing::static_launcher::StaticLauncher;
 use ether::Method;
+use futures::future;
 use futures::prelude::*;
 
 macro_rules! empty_req {
@@ -144,8 +147,25 @@ fn test_multi_route() {
 #[test]
 fn serve_static_file() {
     let launcher = StaticLauncher::new("./");
-    assert_immediate!(
-        launcher.launch(&empty_req!(::Method::GET), &["Cargo.toml"]),
-        Some(include_str!("../Cargo.toml").to_owned())
-    );
+    let s = launcher
+        .launch(&empty_req!(::Method::GET), &["Cargo.toml"])
+        .unwrap()
+        .map(Response::into_body)
+        .map(|rb| match rb {
+            ResponseBody::ByteStream(bs) => bs,
+            _ => panic!("Never reach here"),
+        })
+        .flatten_stream()
+        .map_err(|_| ())
+        .fold(bytes::Bytes::new(), |mut acc, x| {
+            acc.extend_from_slice(&x);
+            future::ok(acc)
+        })
+        .map(|bs| {
+            let s = String::from_utf8_lossy(&bs);
+            // println!("{}", &s);
+            assert!(s == include_str!("../Cargo.toml"));
+        });
+
+    tokio::run(s);
 }

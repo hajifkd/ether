@@ -1,20 +1,20 @@
 use request::Request;
-use response::Response;
-use response::ResponseBody;
 use routing::mounter;
 
 use futures::prelude::*;
 
 pub trait Launcher {
+    type Ret;
     // TODO use some template engine so that we may use vdom
-    fn launch<T>(&self, request: &Request<T>, paths: &[&str]) -> Option<Response<ResponseBody>>
+    // TODO the return type should be Option<Box<Future<Item=Response<ResponseBody>, Error=String> + Send>>
+    fn launch<T>(&self, request: &Request<T>, paths: &[&str]) -> Option<Self::Ret>
     where
         T: Stream<Item = Vec<u8>, Error = String>;
 
     fn mount<'a, S>(self, prefix: &'a str, other: S) -> mounter::Mounter<'a, Self, S>
     where
         Self: Sized,
-        S: Launcher,
+        S: Launcher<Ret = Self::Ret>,
     {
         mounter::Mounter {
             without_prefix: self,
@@ -39,6 +39,7 @@ macro_rules! launcher {
         struct __Ether_Launcher;
 
         impl $crate::routing::launcher::Launcher for __Ether_Launcher {
+            type Ret = Response<ResponseBody>;
             #[allow(unused_variables)]
             fn launch<T>(&self, request: &$crate::request::Request<T>, paths: &[&str]) ->  Option<Response<ResponseBody>>
             where T: Stream<Item = Vec<u8>, Error = String> {

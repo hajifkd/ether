@@ -87,6 +87,8 @@ where
         self.body.replace(None).take().map(|s| {
             s.into_future()
                 .map(|(r, _)| {
+                    // Oops
+                    // TODO read all elements...
                     if r.is_some() {
                         r.unwrap()
                     } else {

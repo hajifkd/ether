@@ -6,3 +6,5 @@ pub mod route;
 pub mod launcher;
 
 pub mod mounter;
+
+pub mod static_launcher;

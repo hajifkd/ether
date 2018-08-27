@@ -1,3 +1,4 @@
+use futures::future;
 use futures::prelude::*;
 use uri;
 use Method;
@@ -70,32 +71,24 @@ pub fn empty_body(
     }
 }
 
-impl<T, V, E> Request<T>
+impl<T, E> Request<T>
 where
-    T: Stream<Item = V, Error = E>,
-    V: Default,
+    T: Stream<Item = Vec<u8>, Error = E>,
 {
     /// Take the body stream.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_stream(&self) -> Option<impl Stream<Item = V, Error = E>> {
+    pub fn take_stream(&self) -> Option<impl Stream<Item = Vec<u8>, Error = E>> {
         self.body.replace(None).take()
     }
 
-    /// Take the body stream converted into future.
+    /// Take the body stream converted into future, concatenating all the `Vec`s.
     /// Return `None` if it is already taken by either `take_stream` or `take_as_future`.
-    pub fn take_as_future(&self) -> Option<impl Future<Item = V, Error = E>> {
+    pub fn take_as_future(&self) -> Option<impl Future<Item = Vec<u8>, Error = E>> {
         self.body.replace(None).take().map(|s| {
-            s.into_future()
-                .map(|(r, _)| {
-                    // Oops
-                    // TODO read all elements...
-                    if r.is_some() {
-                        r.unwrap()
-                    } else {
-                        V::default()
-                    }
-                })
-                .map_err(|(e, _)| e)
+            s.fold(vec![], |mut acc, mut x| {
+                acc.append(&mut x);
+                future::ok(acc)
+            })
         })
     }
 }
